@@ -792,6 +792,47 @@ slackApp.event('message', async ({ event }) => {
   const isDM = channelType === 'im'
   const isMention = !isDM
 
+  // Sticky thread: if this is a reply in a channel thread that already has a
+  // tracked subagent, treat it as engaged. Standard Slack bot UX — once the
+  // bot is active in a thread, replies continue without requiring a re-@mention
+  // every turn. Bots are excluded: sticky is thread-scoped, not sender-scoped,
+  // so a non-allowlisted bot must not piggyback on an engaged thread. Bots
+  // always re-check allowFrom.
+  let isStickyThread = false
+  if (!isDM && threadTs && !isBot) {
+    try {
+      const threadsMap = JSON.parse(readFileSync(join(STATE_DIR, 'threads.json'), 'utf8'))
+      if (threadsMap && typeof threadsMap === 'object' && threadsMap[threadTs]) {
+        isStickyThread = true
+      }
+    } catch {}
+  }
+
+  if (isStickyThread) {
+    const access = loadAccess()
+    const ackReaction = access.ackReaction ?? 'eyes'
+    if (ackReaction) {
+      try {
+        await slackApp!.client.reactions.add({
+          channel: channelId,
+          name: ackReaction,
+          timestamp: msg.ts,
+        })
+      } catch {}
+    }
+    const text = msg.text as string ?? ''
+    const fileIds = (msg.files ?? []).map((f: any) => f.id)
+    deliver(
+      channelId,
+      msg.ts,
+      senderId,
+      text,
+      threadTs,
+      fileIds.length > 0 ? fileIds : undefined,
+    )
+    return
+  }
+
   const result = await gate(senderId, channelId, isDM ? 'im' : 'channel', isMention, isBot)
 
   if (result.action === 'drop') return
