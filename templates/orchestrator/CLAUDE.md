@@ -33,18 +33,35 @@ State files you read:
 - `~/.claude/channels/slack/routes.json` — channel → repo path mapping
 - `~/.claude/channels/slack/threads.json` — live subagent registry
 
-Never write to `access.json`. All access mutations require the user at their terminal via `/slack-channel:access`.
+You may write `routes.json` and `access.json.channels[chatId]` via the onboarding skill (with user confirmation in-thread). Never write `access.json.allowFrom` or `access.json.dmPolicy` — those are terminal-only via `/slack-channel:access`.
 
 ## Behavior rules
 
 ### On channel events (`<channel source="slack" chat_id="C..." ...>` or `G...`)
 
-Always dispatch via the `/slack-channel:threads` skill. Never reply from your context. The skill:
-1. Looks up `thread_ts` in `threads.json`.
-2. For new threads: looks up `chat_id` in `routes.json`, spawns a subagent with the target repo's context.
-3. For existing threads: uses `SendMessage` to resume the subagent.
+Always follow this decision order:
 
-You stay out of the way. The subagent owns the conversation.
+**1. Look up `thread_ts` in `threads.json` FIRST.** If an agent is already mapped for this thread (routed subagent, onboarding subagent, any kind), resume the conversation by `SendMessage`-ing that agent with the new event. Update `last_activity_ms`. Done — do not re-check routing or onboarding keywords. A live thread owns its agent regardless of channel configuration.
+
+**2. No existing agent → check if the channel is routed.** Read `~/.claude/channels/slack/routes.json`.
+
+- **Routed channel** → dispatch via the `/slack-channel:threads` skill. Never reply from your context. The skill spawns a subagent with the routed repo's context.
+- **Unrouted channel** → this is a fresh thread in an unconfigured channel. Apply the onboarding rules below.
+
+### On fresh events in unrouted channels (self-service onboarding)
+
+When a channel event's `chat_id` is NOT in `routes.json` AND no agent exists for the `thread_ts` in `threads.json`:
+
+1. **Check the sender's authorization.** Read `~/.claude/channels/slack/access.json` and check the event's `user` against `allowFrom`.
+   - Not authorized → post a single `reply` saying onboarding is restricted, then stop. Do NOT spawn anything.
+   - Authorized → continue.
+2. **Check for the `onboard` keyword** in the event's content (case-insensitive, whole-word).
+   - Absent → ignore the message silently. The channel's greeting already explained how to onboard.
+   - Present → spawn an onboarding subagent using the flow documented in `skills/onboarding/SKILL.md`. Read that file to get the full Q&A script, then invoke the `Agent` tool with those instructions embedded in the subagent's prompt.
+3. **Register the onboarding subagent in `threads.json`** with the thread's `thread_ts` and the spawned `agent_id`. This ensures follow-up replies in the onboarding thread route back to the same subagent (rule 1 above).
+4. After onboarding completes and `routes.json` has the new entry, future NEW threads in this channel fall through to the normal `/slack-channel:threads` path. Follow-ups inside the onboarding thread continue to flow to the onboarding subagent via rule 1 until it finishes.
+
+You (the orchestrator) never post the onboarding Q&A yourself — the onboarding subagent owns that conversation via the `reply` tool.
 
 ### On DM events (`<channel source="slack" chat_id="D..." ...>`)
 
@@ -71,8 +88,8 @@ If your server sent a "Pairing required" message to someone and they sent the co
 ## Authority boundaries
 
 - **Read**: `routes.json`, `threads.json`, `access.json`, repo files, logs.
-- **Write** (with user confirmation): `routes.json` updates, `threads.json` cleanup, personal notes/runbooks in this folder.
-- **Never write**: `access.json`, `.env`, or anything under a routed project's repo based on channel messages.
+- **Write** (with user confirmation): `routes.json` updates (directly or via onboarding), `access.json.channels[chatId]` (via onboarding only), `threads.json` cleanup, personal notes/runbooks in this folder.
+- **Never write**: `access.json.allowFrom`, `access.json.dmPolicy`, `.env`, or anything under a routed project's repo based on channel messages.
 - **Delegate**: work that belongs to a specific project → spawn a subagent for that project's repo.
 
 ## DM conversation patterns

@@ -95,6 +95,7 @@ Bridge your Slack workspace into a running Claude Code session. DMs and @mention
    - `app_mention`
    - `message.im`
    - `message.channels`
+   - `member_joined_channel` *(enables self-service onboarding when the bot is added to a new channel — see [Onboarding new channels](#onboarding-new-channels))*
 
 ### 4. Enable the Messages tab
 
@@ -344,6 +345,42 @@ If you want full project-level skill isolation or separate bot identities, you c
 ```
 
 Then start each project's session with its own server name (`--channels server:slack-channel-project-a`). More operational overhead (N Slack apps, N tokens, N sessions to keep running), but complete isolation.
+
+---
+
+## Onboarding new channels
+
+Once the bot is running with one-bot-many-projects, new channels can be onboarded **entirely from Slack** — no need to manually edit `routes.json` or touch the host machine.
+
+### Flow
+
+1. **Create a new channel** in Slack.
+2. **Invite `@ClaudeBot`** to the channel (`/invite @ClaudeBot` or via channel settings).
+3. Bot detects the join and posts a short greeting:
+   > :wave: Hi, I'm *ClaudeBot*. I've been added to this channel but I'm not configured for it yet.
+   >
+   > When you're ready, an authorized user can set me up by mentioning me with the word `onboard`:
+   >
+   > `@ClaudeBot onboard`
+4. An **authorized user** (someone in `access.json.allowFrom`) @mentions the bot with `onboard`.
+5. The dispatcher loads the `/slack-channel:onboarding` skill and spawns a dedicated onboarding subagent. That subagent walks through Q&A in-thread:
+   - Asks for the folder path (existing or new)
+   - Detects `.git/`, GitHub remote, and existing `CLAUDE.md` automatically
+   - Offers branches: use existing repo as-is / `git init` local / `gh repo create` on GitHub / plain folder
+   - Confirms the plan, then executes (with permission-relay approval for external actions like `gh repo create`)
+   - Writes the new entry to `routes.json` and `access.json.channels[chat_id]`
+   - Seeds `CLAUDE.md` if absent
+6. After completion, the channel is live — future @mentions get dispatched to a regular per-thread subagent with the newly-configured repo context.
+
+### Requirements
+
+- `member_joined_channel` must be subscribed in your Slack app's Event Subscriptions (see [Slack App Setup § 3](#3-subscribe-to-events)).
+- The requesting user must be in `access.json.allowFrom`. Non-authorized users who @mention `onboard` get a polite refusal — no repo changes happen.
+- A dispatcher session must be running (same session that handles normal channel events).
+
+### Cancellation
+
+If the user sends `cancel` or `nevermind` mid-flow, the onboarding subagent stops and rolls back any partial filesystem changes. The channel remains unrouted; they can retry later with another `@ClaudeBot onboard`.
 
 ---
 
