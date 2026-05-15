@@ -449,10 +449,25 @@ mcp.setNotificationHandler(
 
 const dmChannelUsers = new Map<string, string>()
 
+async function resolveDmChannelUser(chatId: string): Promise<string | undefined> {
+  // The cached map only populates from inbound messages, so a fresh process
+  // can't reply to a DM until the user sends one in. Look up the channel via
+  // Slack so reply works across restarts.
+  if (!slackApp) return undefined
+  const info = await slackApp.client.conversations.info({ channel: chatId })
+  // bolt's Channel type omits `user` (set by Slack for IM channels)
+  const user = (info.channel as { user?: string } | undefined)?.user
+  if (info.channel?.is_im && user) {
+    dmChannelUsers.set(chatId, user)
+    return user
+  }
+  return undefined
+}
+
 async function fetchAllowedChannel(chatId: string): Promise<void> {
   const access = loadAccess()
   if (chatId.startsWith('D')) {
-    const userId = dmChannelUsers.get(chatId)
+    const userId = dmChannelUsers.get(chatId) ?? (await resolveDmChannelUser(chatId))
     if (userId && access.allowFrom.includes(userId)) return
   } else {
     if (chatId in access.channels) return
