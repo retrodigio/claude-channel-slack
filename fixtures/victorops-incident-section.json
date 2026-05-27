@@ -1,0 +1,49 @@
+{
+  "name": "victorops-incident-section",
+  "note": "Incident state in attachments[].blocks[] section",
+  "input": {
+    "type": "message",
+    "user": "U0EXAMPLE02",
+    "ts": "1779904673.798189",
+    "bot_id": "B0EXAMPLE01",
+    "app_id": "A0EXAMPLE00",
+    "text": "",
+    "team": "T0EXAMPLE00",
+    "bot_profile": {
+      "id": "B0EXAMPLE01",
+      "deleted": false,
+      "name": "VictorOps",
+      "updated": 1670513625,
+      "app_id": "A0EXAMPLE00",
+      "user_id": "U0EXAMPLE02",
+      "icons": {
+        "image_36": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_36.jpg",
+        "image_48": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_48.jpg",
+        "image_72": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_72.jpg"
+      },
+      "team_id": "T0EXAMPLE00"
+    },
+    "attachments": [
+      {
+        "id": 1,
+        "blocks": [
+          {
+            "type": "section",
+            "block_id": "N3cRW",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*<https://portal.victorops.com/ui/example-org/incident/90002|Incident #90002>* was *RESOLVED* for (example-api 5xx Error (synthetic test)) by <@U0EXAMPLE01> ",
+              "verbatim": false
+            }
+          }
+        ],
+        "color": "#29AF7B",
+        "fallback": "[no preview available]"
+      }
+    ],
+    "channel": "C0EXAMPLE00",
+    "event_ts": "1779904673.798189",
+    "channel_type": "channel"
+  },
+  "expected": "*<https://portal.victorops.com/ui/example-org/incident/90002|Incident #90002>* was *RESOLVED* for (example-api 5xx Error (synthetic test)) by <@U0EXAMPLE01> "
+}

@@ -1,0 +1,38 @@
+{
+  "name": "victorops-oncall-change",
+  "note": "VictorOps on-call change, attachment text",
+  "input": {
+    "type": "message",
+    "user": "U0EXAMPLE02",
+    "ts": "1779904488.993609",
+    "bot_id": "B0EXAMPLE01",
+    "app_id": "A0EXAMPLE00",
+    "text": "",
+    "team": "T0EXAMPLE00",
+    "bot_profile": {
+      "id": "B0EXAMPLE01",
+      "deleted": false,
+      "name": "VictorOps",
+      "updated": 1670513625,
+      "app_id": "A0EXAMPLE00",
+      "user_id": "U0EXAMPLE02",
+      "icons": {
+        "image_36": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_36.jpg",
+        "image_48": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_48.jpg",
+        "image_72": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_72.jpg"
+      },
+      "team_id": "T0EXAMPLE00"
+    },
+    "attachments": [
+      {
+        "id": 1,
+        "fallback": "ON-CALL CHANGE: oncall-eng-1 is ON for test:test",
+        "text": "ON-CALL CHANGE: oncall-eng-1 is ON for test:test"
+      }
+    ],
+    "channel": "C0EXAMPLE00",
+    "event_ts": "1779904488.993609",
+    "channel_type": "channel"
+  },
+  "expected": "ON-CALL CHANGE: oncall-eng-1 is ON for test:test"
+}

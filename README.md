@@ -12,6 +12,7 @@ Bridge your Slack workspace into a running Claude Code session. DMs and @mention
 - **Three-tier access control** — DM pairing with code exchange, explicit allowlists, per-channel opt-in policies. Nothing responds until you authorize it.
 - **Permission relay** — if Claude needs tool approval while you're away, you can approve/deny from Slack via Block Kit buttons or text (`yes <code>` / `no <code>`).
 - **Anti-prompt-injection design** — skills refuse to mutate access control based on channel messages; only the terminal user can pair, allow, or change policy.
+- **Renders bot & alert payloads** — inbound messages are flattened from top-level `text` plus legacy `attachments[]` and Block Kit `blocks[]` (including blocks nested inside attachments). Bot posts that put everything in attachments/blocks — VictorOps, Google Cloud Monitoring, Block Kit apps — arrive as readable text instead of an empty `(attachment)` placeholder.
 
 ---
 
@@ -54,7 +55,7 @@ Bridge your Slack workspace into a running Claude Code session. DMs and @mention
 ```
 
 1. A message arrives in Slack (DM or @mention in an opted-in channel).
-2. The plugin's `gate()` checks it against access policy. If authorized, it delivers a `<channel source="slack" thread_ts="..." ...>` notification to the running Claude Code session.
+2. The plugin's `gate()` checks it against access policy. If authorized, the message body — top-level `text` plus any legacy `attachments[]` and Block Kit `blocks[]` — is flattened to plain text by `render.ts`, and delivered as a `<channel source="slack" thread_ts="..." ...>` notification to the running Claude Code session.
 3. Claude invokes the `/slack-channel:threads` skill, which looks up the `thread_ts` in a mapping file. If it's a new thread, a fresh subagent is spawned via the `Agent` tool; if it's a follow-up, `SendMessage` resumes the existing subagent.
 4. The subagent does the work and calls the `reply` tool (or `react` / `edit_message`) to respond back to Slack in the original thread.
 
@@ -406,7 +407,13 @@ All tools validate the target against access policy before acting.
 claude-channel-slack/
 ├── .claude-plugin/plugin.json    # plugin manifest
 ├── .mcp.json                     # MCP launch config (plugin-install style)
-├── server.ts                     # entire server: Slack + MCP + gate + tools
+├── server.ts                     # Slack + MCP wiring, gate, tools, event handlers
+├── gate.ts                       # pure access-policy helpers (unit-tested)
+├── render.ts                     # pure inbound-message → text renderer (unit-tested)
+├── gate.test.ts                  # bun:test unit suite for gate.ts
+├── render.test.ts                # bun:test unit suite for render.ts
+├── render.fixtures.test.ts       # data-driven renderer tests over fixtures/
+├── fixtures/                     # captured payloads + expected renders (see fixtures/README.md)
 ├── skills/
 │   ├── access/SKILL.md           # /slack-channel:access
 │   ├── configure/SKILL.md        # /slack-channel:configure

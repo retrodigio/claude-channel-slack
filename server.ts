@@ -23,6 +23,7 @@ import {
 import { homedir } from 'os'
 import { join, sep, extname, basename } from 'path'
 import { decideChannelPolicy, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
+import { renderSlackMessage } from './render.ts'
 
 const STATE_DIR = process.env.SLACK_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'slack')
 const ACCESS_FILE = join(STATE_DIR, 'access.json')
@@ -646,7 +647,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
         const botId = (await slackApp!.client.auth.test({})).user_id
         const out = messages.map((m: any) => {
           const who = m.user === botId ? 'me' : (m.user ?? 'unknown')
-          const text = (m.text ?? '').replace(/[\r\n]+/g, ' | ')
+          const text = renderSlackMessage(m).replace(/[\r\n]+/g, ' | ')
           const files = m.files?.length ? ` +${m.files.length}files` : ''
           return `[${m.ts}] ${who}: ${text}${files}  (ts: ${m.ts})`
         }).join('\n')
@@ -721,7 +722,7 @@ slackApp.event('app_mention', async ({ event }) => {
   if (result.action === 'drop') return
   if (result.action === 'pair') return
 
-  const text = event.text.replace(/<@[A-Z0-9]+>/g, '').trim()
+  const text = renderSlackMessage(event).replace(/<@[A-Z0-9]+>/g, '').trim()
 
   const access = result.access
   const ackReaction = access.ackReaction ?? 'eyes'
@@ -784,13 +785,16 @@ slackApp.event('message', async ({ event }) => {
     return
   }
 
-  const text = msg.text as string ?? ''
+  // User-typed text is preserved separately so attachment content can't
+  // accidentally match the permission allow/deny regex.
+  const userText = (msg.text as string) ?? ''
+  const text = renderSlackMessage(msg)
 
   if (isDM) {
     dmChannelUsers.set(channelId, senderId)
   }
 
-  const permMatch = PERMISSION_REPLY_RE.exec(text)
+  const permMatch = PERMISSION_REPLY_RE.exec(userText)
   if (permMatch) {
     void mcp.notification({
       method: 'notifications/claude/channel/permission',
