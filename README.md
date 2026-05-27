@@ -432,6 +432,7 @@ Runtime state:
 ├── access.json         # access policy + per-channel config
 ├── threads.json        # thread_ts → subagent mapping
 ├── inbox/              # downloaded Slack file attachments
+├── inbound.jsonl       # raw inbound events — only when SLACK_INBOUND_LOG is set (diagnostic; sensitive)
 └── approved/           # one-shot pairing confirmations (server polls every 5s)
 ```
 
@@ -459,6 +460,9 @@ Check `/mcp` shows `slack-channel · ✓ connected`. Verify the Slack app has Me
 
 **Messages in channel drop silently**
 The channel isn't opted in. Run `/slack-channel:access channel add <channelId>` to allow @mentions in that channel.
+
+**Bot/alert messages arrive empty or as `(attachment)`**
+Apps that post via legacy `attachments[]` (VictorOps, Google Cloud Monitoring) or Block Kit `blocks[]` often leave the top-level `text` empty. `render.ts` flattens all three sources, so the content should come through. If a specific payload still renders empty, capture the raw event by setting `SLACK_INBOUND_LOG=<path>` (off by default — the file holds raw events and may contain secrets), reproduce it, then add the captured event as a fixture (see `fixtures/README.md`) and extend `render.ts` to cover it.
 
 **Thread subagent has no memory of prior conversation**
 Check `~/.claude/channels/slack/threads.json` has an entry for that `thread_ts`. If missing, the dispatcher will spawn a fresh agent. If present but the agent transcript is missing (rare — would happen if `~/.claude/projects/` was cleared), the dispatcher falls back to a new subagent and posts a notice in the thread.
