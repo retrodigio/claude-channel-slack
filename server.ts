@@ -4,7 +4,7 @@
  *
  * Self-contained MCP server with full access control: pairing, allowlists,
  * per-channel policies with mention-triggering. State lives in
- * ~/.claude/channels/slack/ — managed by the /slack:access skill.
+ * ~/slack-state/ — managed by the /slack:access skill.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
@@ -24,7 +24,7 @@ import { homedir } from 'os'
 import { join, sep, extname, basename } from 'path'
 import { decideChannelPolicy, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
 
-const STATE_DIR = process.env.SLACK_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'slack')
+const STATE_DIR = process.env.SLACK_STATE_DIR ?? join(homedir(), 'slack-state')
 const ACCESS_FILE = join(STATE_DIR, 'access.json')
 const APPROVED_DIR = join(STATE_DIR, 'approved')
 const ENV_FILE = join(STATE_DIR, '.env')
@@ -34,7 +34,7 @@ const LOCK_FILE = join(STATE_DIR, 'plugin.lock')
 const MAX_CHUNK_LIMIT = 3900
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
 
-// Load ~/.claude/channels/slack/.env into process.env. Real env wins.
+// Load ~/slack-state/.env into process.env. Real env wins.
 try {
   chmodSync(ENV_FILE, 0o600)
   for (const line of readFileSync(ENV_FILE, 'utf8').split('\n')) {
@@ -241,9 +241,9 @@ const mcp = new Server(
       '',
       '## Per-thread dispatch (IMPORTANT)',
       '',
-      'Every inbound <channel source="slack"> event should be dispatched to a dedicated subagent scoped to the Slack thread_ts, so unrelated conversations stay isolated. Invoke the /slack-channel:threads skill to handle this dispatch — it maintains a persistent thread_ts → agent_id mapping in ~/.claude/channels/slack/threads.json and uses the Agent tool to spawn new thread subagents or SendMessage to resume existing ones.',
+      'Every inbound <channel source="slack"> event should be dispatched to a dedicated subagent scoped to the Slack thread_ts, so unrelated conversations stay isolated. Invoke the /slack-channel:threads skill to handle this dispatch — it maintains a persistent thread_ts → agent_id mapping in ~/slack-state/threads.json and uses the Agent tool to spawn new thread subagents or SendMessage to resume existing ones.',
       '',
-      'The threads skill also handles channel-to-repo routing via ~/.claude/channels/slack/routes.json. Different Slack channels can be mapped to different repo paths — the dispatcher spawns each subagent with its channel\'s target project context, so one bot can serve many repos.',
+      'The threads skill also handles channel-to-repo routing via ~/slack-state/routes.json. Different Slack channels can be mapped to different repo paths — the dispatcher spawns each subagent with its channel\'s target project context, so one bot can serve many repos.',
       '',
       'Do NOT reply to Slack directly from the main session. The dispatched subagent calls the reply tool. Your role on the main session is: read the inbound event, invoke /slack-channel:threads, done.',
       '',

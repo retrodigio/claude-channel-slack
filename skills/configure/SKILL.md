@@ -12,7 +12,7 @@ allowed-tools:
 
 # /slack:configure — Slack Channel Setup
 
-This skill manages Slack token setup and channel status. It writes tokens to `~/.claude/channels/slack/.env` and orients the user on the current access policy.
+This skill manages Slack token setup and channel status. It writes tokens to `~/slack-state/.env` and orients the user on the current access policy.
 
 Arguments passed: `$ARGUMENTS`
 
@@ -25,8 +25,8 @@ Arguments passed: `$ARGUMENTS`
 Check the current configuration state and show a concrete next step.
 
 Steps:
-1. Read `~/.claude/channels/slack/.env` (handle ENOENT gracefully — file may not exist yet)
-2. Read `~/.claude/channels/slack/access.json` (handle ENOENT)
+1. Read `~/slack-state/.env` (handle ENOENT gracefully — file may not exist yet)
+2. Read `~/slack-state/access.json` (handle ENOENT)
 3. Report:
    - Whether `SLACK_BOT_TOKEN` is set (show masked value like `xoxb-****-****-<last4>`)
    - Whether `SLACK_APP_TOKEN` is set (show masked value like `xapp-****-<last4>`)
@@ -49,11 +49,11 @@ Validation:
 - If either fails validation, print a clear error and stop — do not write anything
 
 Steps:
-1. `mkdir -p ~/.claude/channels/slack`
-2. Read existing `~/.claude/channels/slack/.env` (empty string if ENOENT)
+1. `mkdir -p ~/slack-state`
+2. Read existing `~/slack-state/.env` (empty string if ENOENT)
 3. Update or add `SLACK_BOT_TOKEN=<value>` and `SLACK_APP_TOKEN=<value>` lines — do not wrap values in quotes
-4. Write the updated content back to `~/.claude/channels/slack/.env`
-5. `chmod 600 ~/.claude/channels/slack/.env`
+4. Write the updated content back to `~/slack-state/.env`
+5. `chmod 600 ~/slack-state/.env`
 6. Confirm success, then run the status display (same as no-args mode) so the user can verify
 7. Note that the server reads `.env` at boot — a restart is required for token changes to take effect
 
@@ -64,7 +64,7 @@ Steps:
 Remove token lines from `.env` without deleting the file.
 
 Steps:
-1. Read `~/.claude/channels/slack/.env` (ENOENT → nothing to clear, say so)
+1. Read `~/slack-state/.env` (ENOENT → nothing to clear, say so)
 2. Filter out lines starting with `SLACK_BOT_TOKEN=` and `SLACK_APP_TOKEN=`
 3. Write remaining lines back
 4. Confirm what was removed
@@ -73,7 +73,7 @@ Steps:
 
 ## Implementation Notes
 
-- The `~/.claude/channels/slack/` directory may not exist — always `mkdir -p` before writing
+- The `~/slack-state/` directory may not exist — always `mkdir -p` before writing
 - The server reads `.env` once at boot; token changes require a server restart to take effect
 - `access.json` is re-read on every incoming message, so policy changes (dmPolicy, allowFrom, etc.) take effect immediately without a restart
 - Never write token values with surrounding quotes in `.env` — bare values only
