@@ -17,12 +17,13 @@ import { z } from 'zod'
 import { App } from '@slack/bolt'
 import { randomBytes } from 'crypto'
 import {
-  readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync,
+  readFileSync, writeFileSync, appendFileSync, mkdirSync, readdirSync, rmSync,
   statSync, renameSync, realpathSync, chmodSync, unlinkSync,
 } from 'fs'
 import { homedir } from 'os'
 import { join, sep, extname, basename } from 'path'
 import { decideChannelPolicy, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
+import { renderSlackMessage } from './render.ts'
 
 const STATE_DIR = process.env.SLACK_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'slack')
 const ACCESS_FILE = join(STATE_DIR, 'access.json')
@@ -30,6 +31,26 @@ const APPROVED_DIR = join(STATE_DIR, 'approved')
 const ENV_FILE = join(STATE_DIR, '.env')
 const INBOX_DIR = join(STATE_DIR, 'inbox')
 const LOCK_FILE = join(STATE_DIR, 'plugin.lock')
+
+// Diagnostic: when SLACK_INBOUND_LOG is set to a path, append the literal raw
+// Slack event for every inbound message to that .jsonl file, alongside what
+// renderSlackMessage() produced — useful for verifying the renderer against
+// real payloads (VictorOps/Block Kit). OFF by default: raw events routinely
+// carry secrets (e.g. a monitoring webhook token embedded in an alert URL), so
+// this is opt-in and its output must be treated as sensitive. Each line:
+// { logged_at, handler, rendered, raw }.
+const INBOUND_LOG = process.env.SLACK_INBOUND_LOG ?? ''
+
+function logInbound(handler: string, raw: unknown): void {
+  if (!INBOUND_LOG) return
+  try {
+    const rendered = renderSlackMessage(raw as any)
+    const line = JSON.stringify({ logged_at: new Date().toISOString(), handler, rendered, raw })
+    appendFileSync(INBOUND_LOG, line + '\n', { mode: 0o600 })
+  } catch (err) {
+    process.stderr.write(`slack channel: inbound log write failed: ${err}\n`)
+  }
+}
 
 const MAX_CHUNK_LIMIT = 3900
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
@@ -646,7 +667,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
         const botId = (await slackApp!.client.auth.test({})).user_id
         const out = messages.map((m: any) => {
           const who = m.user === botId ? 'me' : (m.user ?? 'unknown')
-          const text = (m.text ?? '').replace(/[\r\n]+/g, ' | ')
+          const text = renderSlackMessage(m).replace(/[\r\n]+/g, ' | ')
           const files = m.files?.length ? ` +${m.files.length}files` : ''
           return `[${m.ts}] ${who}: ${text}${files}  (ts: ${m.ts})`
         }).join('\n')
@@ -711,6 +732,7 @@ slackApp.event('app_mention', async ({ event }) => {
   // rarely @mention apps (forwarder/digest workflows are the main cases),
   // but keeping the rule consistent avoids a hidden second policy.
   const ev = event as any
+  logInbound('app_mention', ev)
   const isBot = !!ev.bot_id
   const senderId: string | undefined = isBot ? ev.bot_id : ev.user
   if (!senderId) return
@@ -721,7 +743,7 @@ slackApp.event('app_mention', async ({ event }) => {
   if (result.action === 'drop') return
   if (result.action === 'pair') return
 
-  const text = event.text.replace(/<@[A-Z0-9]+>/g, '').trim()
+  const text = renderSlackMessage(event).replace(/<@[A-Z0-9]+>/g, '').trim()
 
   const access = result.access
   const ackReaction = access.ackReaction ?? 'eyes'
@@ -743,6 +765,9 @@ slackApp.event('app_mention', async ({ event }) => {
 // Handle DMs and thread replies
 slackApp.event('message', async ({ event }) => {
   const msg = event as any
+  // Logged before any subtype/self filtering so the raw payload of every
+  // inbound message — including ones we later drop — is captured.
+  logInbound('message', msg)
   // Slack distinguishes bot posts in two ways depending on app age:
   //   1. Modern apps (granular permissions) post with NO subtype, but
   //      bot_id and bot_profile are populated.
@@ -784,13 +809,16 @@ slackApp.event('message', async ({ event }) => {
     return
   }
 
-  const text = msg.text as string ?? ''
+  // User-typed text is preserved separately so attachment content can't
+  // accidentally match the permission allow/deny regex.
+  const userText = (msg.text as string) ?? ''
+  const text = renderSlackMessage(msg)
 
   if (isDM) {
     dmChannelUsers.set(channelId, senderId)
   }
 
-  const permMatch = PERMISSION_REPLY_RE.exec(text)
+  const permMatch = PERMISSION_REPLY_RE.exec(userText)
   if (permMatch) {
     void mcp.notification({
       method: 'notifications/claude/channel/permission',

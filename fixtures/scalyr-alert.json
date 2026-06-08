@@ -1,0 +1,41 @@
+{
+  "name": "scalyr-alert",
+  "note": "Scalyr alert, content in attachment text",
+  "input": {
+    "type": "message",
+    "subtype": "bot_message",
+    "text": "Alert: Too many clicks in queue <https://app.scalyr.com/alert?id=EXAMPLEALERT01&amp;teamToken=REDACTED|Link>",
+    "username": "scalyr",
+    "icons": {
+      "emoji": ":bangbang:"
+    },
+    "ts": "1779902118.874899",
+    "bot_id": "B0EXAMPLE02",
+    "blocks": [
+      {
+        "type": "rich_text",
+        "block_id": "pgphE",
+        "elements": [
+          {
+            "type": "rich_text_section",
+            "elements": [
+              {
+                "type": "text",
+                "text": "Alert: Too many clicks in queue "
+              },
+              {
+                "type": "link",
+                "url": "https://app.scalyr.com/alert?id=EXAMPLEALERT01&amp;teamToken=REDACTED",
+                "text": "Link"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "channel": "C0EXAMPLE00",
+    "event_ts": "1779902118.874899",
+    "channel_type": "channel"
+  },
+  "expected": "Alert: Too many clicks in queue <https://app.scalyr.com/alert?id=EXAMPLEALERT01&amp;teamToken=REDACTED|Link>\nAlert: Too many clicks in queue Link"
+}

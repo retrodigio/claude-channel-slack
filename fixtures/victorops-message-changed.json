@@ -1,0 +1,230 @@
+{
+  "name": "victorops-message-changed",
+  "note": "redundant re-edit (message_changed); content already delivered by the initial FIRING post, so correctly dropped/unrendered",
+  "input": {
+    "type": "message",
+    "subtype": "message_changed",
+    "message": {
+      "user": "U0EXAMPLE02",
+      "type": "message",
+      "edited": {
+        "user": "B0EXAMPLE01",
+        "ts": "1779904673.000000"
+      },
+      "bot_id": "B0EXAMPLE01",
+      "app_id": "A0EXAMPLE00",
+      "text": "",
+      "team": "T0EXAMPLE00",
+      "bot_profile": {
+        "id": "B0EXAMPLE01",
+        "app_id": "A0EXAMPLE00",
+        "user_id": "U0EXAMPLE02",
+        "name": "VictorOps",
+        "icons": {
+          "image_36": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_36.jpg",
+          "image_48": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_48.jpg",
+          "image_72": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_72.jpg"
+        },
+        "deleted": false,
+        "updated": 1670513625,
+        "team_id": "T0EXAMPLE00"
+      },
+      "attachments": [
+        {
+          "id": 1,
+          "blocks": [
+            {
+              "type": "section",
+              "block_id": "sM31L",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Organization:* example-org",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "section",
+              "block_id": "+ZpKK",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*<https://portal.victorops.com/ui/example-org/incident/90002|Incident #90002>: example-api 5xx Error (synthetic test)*\nexample-api 5xx Error (synthetic test)",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "section",
+              "block_id": "17WW2",
+              "text": {
+                "type": "mrkdwn",
+                "text": "```monitoring_tool: Scalyr\nentity_display_name: example-api 5xx Error (synthetic test)\nstate_message: Resolved by oncall-eng-1\nACK_TIMESTAMP: 1779904670966\nACK_USER: oncall-eng-1\nALERT_COUNT: 1\nCONTACTGROUPNAME: test\nCURRENT_ALERT_PHASE: RESOLVED\nCURRENT_STATE: OK\nENTITY_ID: synthetic-test-6\nENTITY_SLUG: --example-api-5xx-error--synthetic-test-\nHOSTOUTPUT: Resolved by oncall-eng-1\nHOSTSTATE: UP\nINCIDENT_NAME: 90002\nINCIDENT_TIMESTAMP: 1779904656703\nLAST_TIMESTAMP: 1779904670966\nLAST_UUID: 00000000-0000-4000-8000-000000000001\nMONITOR_TYPE: UNKNOWN\nRESOLVED_AT: 1779904670966\nRESOLVED_BY: oncall-eng-1\nSERVICE: example-api 5xx Error (synthetic test)\nSERVICESTATE: CRITICAL\nSTATE_START_TIME: 1779904656703\nTEAMS_PAGED.0: team-EXAMPLE000\nTIMET: 1779904670989\nUSERS_PAGED.0: oncall-eng-1\nVO_ALERT_RCV_TIME: 1779904670989\nVO_ALERT_TYPE: SERVICE\nVO_MONITOR_TYPE: 4\nVO_ORGANIZATION_ID: example-org\nVO_ROUTING_KEYS: test\nVO_UUID: 00000000-0000-4000-8000-000000000001\nX-Amzn-Trace-Id: Root=1-00000000-000000000000000000000000\nX-Forwarded-For: 203.0.113.10, 203.0.113.20\nX-Forwarded-Port: 443\nX-Forwarded-Proto: https\nX-Request-ID: 00000000-0000-4000-8000-000000000002\nack_author: oncall-eng-1\nalert_received_time_utc: 2026-05-27T17:57:36Z\nalert_received_week_time_utc: 2026-W22-3T17:57:36Z\nalert_type: RECOVERY\napi_key: redacted\nentity_id: synthetic-test-6\nentity_state: UP\nis_vo_ack: 1\nmessage_type: RECOVERY\nrouting_key: test\nstate_start_time: 1779904656703\ntimestamp: 1779904656703```",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "section",
+              "block_id": "GhD6b",
+              "text": {
+                "type": "plain_text",
+                "text": " ",
+                "emoji": true
+              },
+              "fields": [
+                {
+                  "type": "mrkdwn",
+                  "text": "*Escalation Policies*\ntest: test",
+                  "verbatim": false
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Resolved by*\noncall-eng-1",
+                  "verbatim": false
+                }
+              ]
+            }
+          ],
+          "color": "#29AF7B",
+          "fallback": "[no preview available]"
+        }
+      ],
+      "ts": "1779904663.592929",
+      "source_team": "T0EXAMPLE00",
+      "user_team": "T0EXAMPLE00"
+    },
+    "previous_message": {
+      "user": "U0EXAMPLE02",
+      "type": "message",
+      "ts": "1779904663.592929",
+      "edited": {
+        "user": "B0EXAMPLE01",
+        "ts": "1779904664.000000"
+      },
+      "bot_id": "B0EXAMPLE01",
+      "app_id": "A0EXAMPLE00",
+      "text": "",
+      "team": "T0EXAMPLE00",
+      "bot_profile": {
+        "id": "B0EXAMPLE01",
+        "app_id": "A0EXAMPLE00",
+        "user_id": "U0EXAMPLE02",
+        "name": "VictorOps",
+        "icons": {
+          "image_36": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_36.jpg",
+          "image_48": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_48.jpg",
+          "image_72": "https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2016-06-22/53341144641_2fa83b69624b8d5b77fb_72.jpg"
+        },
+        "deleted": false,
+        "updated": 1670513625,
+        "team_id": "T0EXAMPLE00"
+      },
+      "attachments": [
+        {
+          "id": 1,
+          "blocks": [
+            {
+              "type": "section",
+              "block_id": "53unk",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Organization:* example-org",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "section",
+              "block_id": "pfkY/",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*<https://portal.victorops.com/ui/example-org/incident/90002|Incident #90002>: example-api 5xx Error (synthetic test)*\nexample-api 5xx Error (synthetic test)",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "section",
+              "block_id": "LJpvh",
+              "text": {
+                "type": "mrkdwn",
+                "text": "```monitoring_tool: Scalyr\nentity_display_name: example-api 5xx Error (synthetic test)\nstate_message: Synthetic alert verifying the Slack attachment-render fix (follow-up to #90001). Safe to ignore; auto-recovers.\nACK_TIMESTAMP: 0\nACK_USER: SYSTEM\nALERT_COUNT: 1\nCONTACTGROUPNAME: test\nCURRENT_ALERT_PHASE: UNACKED\nCURRENT_STATE: CRITICAL\nENTITY_ID: synthetic-test-6\nENTITY_SLUG: --example-api-5xx-error--synthetic-test-\nINCIDENT_NAME: 90002\nINCIDENT_TIMESTAMP: 1779904656703\nLAST_TIMESTAMP: 1779904656703\nLAST_UUID: 00000000-0000-4000-8000-000000000001\nMONITOR_TYPE: API\nSERVICE: example-api 5xx Error (synthetic test)\nSERVICESTATE: CRITICAL\nSTATE_START_TIME: 1779904656703\nTEAMS_PAGED.0: team-EXAMPLE000\nUSERS_PAGED.0: oncall-eng-1\nVO_ALERT_RCV_TIME: 1779904656703\nVO_ALERT_TYPE: SERVICE\nVO_MONITOR_TYPE: 4\nVO_ORGANIZATION_ID: example-org\nVO_ROUTING_KEYS: test\nVO_UUID: 00000000-0000-4000-8000-000000000001\nX-Amzn-Trace-Id: Root=1-00000000-000000000000000000000000\nX-Forwarded-For: 203.0.113.10, 203.0.113.20\nX-Forwarded-Port: 443\nX-Forwarded-Proto: https\nX-Request-ID: 00000000-0000-4000-8000-000000000002\nalert_received_time_utc: 2026-05-27T17:57:36Z\nalert_received_week_time_utc: 2026-W22-3T17:57:36Z\nalert_type: CRITICAL\napi_key: redacted\nentity_id: synthetic-test-6\nentity_state: CRITICAL\nmessage_type: CRITICAL\nrouting_key: test\nstate_start_time: 1779904656703\ntimestamp: 1779904656703```",
+                "verbatim": false
+              }
+            },
+            {
+              "type": "section",
+              "block_id": "qamGk",
+              "text": {
+                "type": "plain_text",
+                "text": " ",
+                "emoji": true
+              },
+              "fields": [
+                {
+                  "type": "mrkdwn",
+                  "text": "*Escalation Policies*\ntest: test",
+                  "verbatim": false
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Paging*\noncall-eng-1",
+                  "verbatim": false
+                }
+              ]
+            },
+            {
+              "type": "actions",
+              "block_id": "vW7yU",
+              "elements": [
+                {
+                  "type": "button",
+                  "action_id": "ack",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Acknowledge",
+                    "emoji": true
+                  },
+                  "value": "example-org:90002"
+                },
+                {
+                  "type": "button",
+                  "action_id": "res",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Resolve",
+                    "emoji": true
+                  },
+                  "value": "example-org:90002"
+                },
+                {
+                  "type": "button",
+                  "action_id": "Reroute",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Reroute",
+                    "emoji": true
+                  },
+                  "value": "example-org:90002"
+                },
+                {
+                  "type": "button",
+                  "action_id": "Snooze",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Snooze",
+                    "emoji": true
+                  },
+                  "value": "example-org:90002"
+                }
+              ]
+            }
+          ],
+          "color": "#990000",
+          "fallback": "[no preview available]"
+        }
+      ]
+    },
+    "channel": "C0EXAMPLE00",
+    "hidden": true,
+    "ts": "1779904673.001300",
+    "event_ts": "1779904673.001300",
+    "channel_type": "channel"
+  },
+  "expected": ""
+}
