@@ -25,7 +25,7 @@ When a Slack message arrives as a `<channel source="slack" ...>` event, route it
 
 ## State file
 
-Thread-to-agent mappings live in `~/.claude/channels/slack/threads.json`:
+Thread-to-agent mappings live in `~/slack-state/threads.json`:
 
 ```json
 {
@@ -54,7 +54,7 @@ Always use the exact `thread_ts` attribute from the event as the lookup key. Don
 
 To support running a single bot across multiple project channels (one bot, many repos), this skill also reads a **routing config** that maps `chat_id` → target repo. New subagents are dispatched with that repo as their working context.
 
-Routing config: `~/.claude/channels/slack/routes.json`:
+Routing config: `~/slack-state/routes.json`:
 
 ```json
 {
@@ -79,10 +79,10 @@ When a `<channel source="slack" chat_id="..." message_id="..." thread_ts="..." u
 
 ### Step 1: Load thread state
 
-Read `~/.claude/channels/slack/threads.json`. If the file doesn't exist, treat it as `{}`. Handle JSON parse errors by treating as `{}` and logging (don't crash — an empty mapping just means all threads are "new").
+Read `~/slack-state/threads.json`. If the file doesn't exist, treat it as `{}`. Handle JSON parse errors by treating as `{}` and logging (don't crash — an empty mapping just means all threads are "new").
 
 ```
-mkdir -p ~/.claude/channels/slack
+mkdir -p ~/slack-state
 ```
 
 ### Step 2: Look up the thread
@@ -94,7 +94,7 @@ Check if `threads[thread_ts]` exists.
 If no entry exists for this `thread_ts`:
 
 1. **Resolve target repo:**
-   - Read `~/.claude/channels/slack/routes.json` (treat as `{}` if missing or unparseable).
+   - Read `~/slack-state/routes.json` (treat as `{}` if missing or unparseable).
    - Look up `routes[chat_id]`. If found, use `repo_path` and `label`.
    - If not found, fall back to the dispatcher's current working directory. Set `label` to the basename of that directory.
 
