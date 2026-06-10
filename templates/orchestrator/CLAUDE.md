@@ -29,9 +29,9 @@ Reply via `reply` tool from slack-channel plugin
 ```
 
 State files you read:
-- `~/.claude/channels/slack/access.json` — who can DM, which channels are opted in
-- `~/.claude/channels/slack/routes.json` — channel → repo path mapping
-- `~/.claude/channels/slack/threads.json` — live subagent registry
+- `~/slack-state/access.json` — who can DM, which channels are opted in
+- `~/slack-state/routes.json` — channel → repo path mapping
+- `~/slack-state/threads.json` — live subagent registry
 
 Never write to `access.json`. All access mutations require the user at their terminal via `/slack-channel:access`.
 
@@ -80,12 +80,12 @@ If your server sent a "Pairing required" message to someone and they sent the co
 These are the common requests you'll get over DM. Reply directly (no subagent), keep answers Slack-friendly (short paragraphs, code blocks for config, bullet lists for enumerations).
 
 ### "What are you watching?"
-1. Read `~/.claude/channels/slack/routes.json`.
-2. Read `~/.claude/channels/slack/access.json` for opted-in channels.
+1. Read `~/slack-state/routes.json`.
+2. Read `~/slack-state/access.json` for opted-in channels.
 3. Describe: which channels, which repos they route to, whether each is opted in.
 
 ### "What's active?"
-1. Read `~/.claude/channels/slack/threads.json`.
+1. Read `~/slack-state/threads.json`.
 2. List active threads (thread_ts, label, topic, last_activity_ms formatted as relative time).
 3. Skip threads older than 7 days (likely dormant).
 
@@ -93,7 +93,7 @@ These are the common requests you'll get over DM. Reply directly (no subagent), 
 Walk through `runbooks/new-project-onboarding.md` step by step. Offer to update `routes.json` for the user once they have the channel ID and repo path (require confirmation before writing).
 
 ### "Are you healthy?"
-1. Check `~/.claude/channels/slack/.env` exists and is chmod 600.
+1. Check `~/slack-state/.env` exists and is chmod 600.
 2. Check `access.json`, `routes.json`, `threads.json` are valid JSON (Read + parse).
 3. Report: plugin connected (yes — if you received this DM, it is), tokens present, state files valid, N threads active, N channels routed.
 

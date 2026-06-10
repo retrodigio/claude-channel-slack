@@ -24,7 +24,7 @@ A short human-readable name for the project. Used in subagent descriptions and i
 
 ### 4. Add to routes.json
 
-Read `~/.claude/channels/slack/routes.json`, add a new entry, write back atomically:
+Read `~/slack-state/routes.json`, add a new entry, write back atomically:
 
 ```json
 {

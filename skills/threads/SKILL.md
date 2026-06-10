@@ -25,6 +25,8 @@ When a Slack message arrives as a `<channel source="slack" ...>` event, route it
 
 ## State file
 
+> **State directory.** Throughout this skill, `~/slack-state` means: `$SLACK_STATE_DIR` if set; otherwise `~/slack-state`, unless that directory does not yet exist and the legacy `~/.claude/channels/slack` does — then use the legacy directory. This mirrors the server's fallback so an in-progress upgrade doesn't split state across two locations.
+
 Thread-to-agent mappings live in `~/slack-state/threads.json`:
 
 ```json

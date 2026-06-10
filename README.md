@@ -7,7 +7,7 @@ Bridge your Slack workspace into a running Claude Code session. DMs and @mention
 ## Highlights
 
 - **Per-thread subagent dispatch** — every unique Slack `thread_ts` spawns a dedicated subagent with its own context window. Parallel conversations stay independent; Claude never mixes up which thread it's in.
-- **Persistence across restarts** — thread state is stored on disk (`~/.claude/channels/slack/threads.json` + Claude Code's built-in subagent storage). Close your terminal, come back tomorrow, reply in a thread — the subagent wakes up with full memory of the prior conversation.
+- **Persistence across restarts** — thread state is stored on disk (`~/slack-state/threads.json` + Claude Code's built-in subagent storage). Close your terminal, come back tomorrow, reply in a thread — the subagent wakes up with full memory of the prior conversation.
 - **Full Claude Code capability inside Slack** — subagents inherit every tool, skill, MCP server, and CLAUDE.md context from the parent session. Unlike a restricted Agent SDK bot, you get Read/Write/Edit/Bash/WebSearch/WebFetch and everything else natively.
 - **Three-tier access control** — DM pairing with code exchange, explicit allowlists, per-channel opt-in policies. Nothing responds until you authorize it.
 - **Permission relay** — if Claude needs tool approval while you're away, you can approve/deny from Slack via Block Kit buttons or text (`yes <code>` / `no <code>`).
@@ -171,7 +171,7 @@ With Claude Code running, save your Slack tokens:
 /slack-channel:configure <xoxb-bot-token> <xapp-app-token>
 ```
 
-Tokens are written to `~/.claude/channels/slack/.env` with permissions `600`. The server reads this file at startup — restart Claude Code after saving tokens for the first time.
+Tokens are written to `~/slack-state/.env` with permissions `600`. The server reads this file at startup — restart Claude Code after saving tokens for the first time.
 
 ---
 
@@ -215,7 +215,7 @@ By default, an opted-in channel requires an explicit @mention of the bot, and an
 
 ## Per-Thread Subagents
 
-Every Slack `thread_ts` gets a dedicated subagent. State is tracked in `~/.claude/channels/slack/threads.json`:
+Every Slack `thread_ts` gets a dedicated subagent. State is tracked in `~/slack-state/threads.json`:
 
 ```json
 {
@@ -270,11 +270,11 @@ The template README explains the structure in detail.
 
 ## One Bot, Many Projects — Channel-to-Repo Routing
 
-A single Slack app can serve many repos. Map channels to repo paths in `~/.claude/channels/slack/routes.json`, invite the bot to each channel, and run one dispatcher session that routes each channel's threads to subagents grounded in the correct project context.
+A single Slack app can serve many repos. Map channels to repo paths in `~/slack-state/routes.json`, invite the bot to each channel, and run one dispatcher session that routes each channel's threads to subagents grounded in the correct project context.
 
 ### Setup
 
-1. Create `~/.claude/channels/slack/routes.json`:
+1. Create `~/slack-state/routes.json`:
 
 ```json
 {
@@ -331,13 +331,13 @@ If you want full project-level skill isolation or separate bot identities, you c
     "type": "stdio",
     "command": "bun",
     "args": ["run", "--cwd", "/path/to/plugin", "--silent", "start"],
-    "env": { "SLACK_STATE_DIR": "/Users/you/.claude/channels/slack-project-a" }
+    "env": { "SLACK_STATE_DIR": "/Users/you/slack-state-project-a" }
   },
   "slack-channel-project-b": {
     "type": "stdio",
     "command": "bun",
     "args": ["run", "--cwd", "/path/to/plugin", "--silent", "start"],
-    "env": { "SLACK_STATE_DIR": "/Users/you/.claude/channels/slack-project-b" }
+    "env": { "SLACK_STATE_DIR": "/Users/you/slack-state-project-b" }
   }
 }
 ```
@@ -393,7 +393,7 @@ Tools the plugin exposes to the Claude Code session and its subagents:
 | `reply` | Post a message (or file) to a channel/DM, optionally threaded via `thread_ts`. Splits long text at `textChunkLimit`. |
 | `react` | Add an emoji reaction to a message. |
 | `edit_message` | Edit a previously sent bot message — useful for progress updates on long tasks. |
-| `download_attachment` | Download a Slack file to `~/.claude/channels/slack/inbox/` and return the path. |
+| `download_attachment` | Download a Slack file to `~/slack-state/inbox/` and return the path. |
 | `fetch_messages` | Pull channel or thread history via `conversations.history` / `conversations.replies`. |
 
 All tools validate the target against access policy before acting.
@@ -420,7 +420,7 @@ claude-channel-slack/
 Runtime state:
 
 ```
-~/.claude/channels/slack/
+~/slack-state/
 ├── .env                # SLACK_BOT_TOKEN + SLACK_APP_TOKEN (chmod 600)
 ├── access.json         # access policy + per-channel config
 ├── threads.json        # thread_ts → subagent mapping
@@ -454,7 +454,7 @@ Check `/mcp` shows `slack-channel · ✓ connected`. Verify the Slack app has Me
 The channel isn't opted in. Run `/slack-channel:access channel add <channelId>` to allow @mentions in that channel.
 
 **Thread subagent has no memory of prior conversation**
-Check `~/.claude/channels/slack/threads.json` has an entry for that `thread_ts`. If missing, the dispatcher will spawn a fresh agent. If present but the agent transcript is missing (rare — would happen if `~/.claude/projects/` was cleared), the dispatcher falls back to a new subagent and posts a notice in the thread.
+Check `~/slack-state/threads.json` has an entry for that `thread_ts`. If missing, the dispatcher will spawn a fresh agent. If present but the agent transcript is missing (rare — would happen if `~/.claude/projects/` was cleared), the dispatcher falls back to a new subagent and posts a notice in the thread.
 
 **"Blocked by org policy" on Team/Enterprise**
 An admin needs to toggle **Allow channel notifications** in claude.ai → Admin settings → Claude Code → Channels.

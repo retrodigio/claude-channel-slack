@@ -3,7 +3,7 @@
 ## Bot doesn't respond to a channel message
 
 Possible causes:
-1. **Channel not opted in.** Check `~/.claude/channels/slack/access.json` → `channels` map. If the channel ID isn't there, run `/slack-channel:access channel add <channel-id>` at the terminal.
+1. **Channel not opted in.** Check `~/slack-state/access.json` → `channels` map. If the channel ID isn't there, run `/slack-channel:access channel add <channel-id>` at the terminal.
 2. **No @mention** (in a channel with `requireMention: true`). The default channel policy requires the bot to be @mentioned. Bare channel messages drop silently.
 3. **Channel not in routes.json.** The channel might be in access.json (gate allows it) but not in routes.json (no repo mapping). In that case, subagents fall back to the dispatcher's cwd — which is this orchestrator folder. That's fine for a one-off, but usually you want to add it to routes.json.
 4. **Plugin server not connected.** Run `/mcp` — should show `slack-channel · ✓ connected`. If it shows failed or not present, restart Claude Code with `--debug` and check the log.
@@ -53,4 +53,4 @@ Team/Enterprise plans have channels off by default. An admin must enable **Allow
 
 - Bot tokens (`xoxb-`) don't expire, but can be revoked if the app is uninstalled
 - App-level tokens (`xapp-`) don't expire by default
-- If either was rotated: update `~/.claude/channels/slack/.env` and restart the dispatcher
+- If either was rotated: update `~/slack-state/.env` and restart the dispatcher

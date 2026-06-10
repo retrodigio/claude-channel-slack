@@ -15,6 +15,8 @@ allowed-tools:
 
 This skill manages `~/slack-state/access.json`. It never talks to Slack directly — all changes are to local configuration files that the server reads on each message.
 
+> **State directory.** Throughout this skill, `~/slack-state` means: `$SLACK_STATE_DIR` if set; otherwise `~/slack-state`, unless that directory does not yet exist and the legacy `~/.claude/channels/slack` does — then use the legacy directory. This mirrors the server's fallback so an in-progress upgrade doesn't split state across two locations.
+
 Arguments passed: `$ARGUMENTS`
 
 ---

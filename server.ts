@@ -18,13 +18,37 @@ import { App } from '@slack/bolt'
 import { randomBytes } from 'crypto'
 import {
   readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync,
-  statSync, renameSync, realpathSync, chmodSync, unlinkSync,
+  statSync, renameSync, realpathSync, chmodSync, unlinkSync, existsSync,
 } from 'fs'
 import { homedir } from 'os'
 import { join, sep, extname, basename } from 'path'
 import { decideChannelPolicy, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
 
-const STATE_DIR = process.env.SLACK_STATE_DIR ?? join(homedir(), 'slack-state')
+// Resolve the state directory. An explicit SLACK_STATE_DIR always wins. Otherwise
+// the default is ~/slack-state. The default used to be ~/.claude/channels/slack,
+// but ~/.claude is a Claude Code protected path (writes there prompt in every mode
+// but bypassPermissions and can't be pre-approved by permissions.allow), so it was
+// moved out. To keep that move non-breaking: if an existing install still has its
+// state in the legacy location and the new default hasn't been created yet, keep
+// using the legacy dir rather than silently orphaning access policy, tokens, and
+// the thread map. Migrate by moving the dir to ~/slack-state (or set SLACK_STATE_DIR).
+function resolveStateDir(): string {
+  const explicit = process.env.SLACK_STATE_DIR
+  if (explicit) return explicit
+  const preferred = join(homedir(), 'slack-state')
+  const legacy = join(homedir(), '.claude', 'channels', 'slack')
+  if (!existsSync(preferred) && existsSync(legacy)) {
+    process.stderr.write(
+      `slack channel: using legacy state dir ${legacy}.\n` +
+      `  this location is deprecated (~/.claude is a Claude Code protected path) —\n` +
+      `  move it to ${preferred} or set SLACK_STATE_DIR to adopt the new default.\n`,
+    )
+    return legacy
+  }
+  return preferred
+}
+
+const STATE_DIR = resolveStateDir()
 const ACCESS_FILE = join(STATE_DIR, 'access.json')
 const APPROVED_DIR = join(STATE_DIR, 'approved')
 const ENV_FILE = join(STATE_DIR, '.env')

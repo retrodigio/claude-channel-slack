@@ -1,6 +1,6 @@
 # Projects
 
-> **Template:** fill in each project you've routed through the orchestrator. Keep this in sync with `~/.claude/channels/slack/routes.json`.
+> **Template:** fill in each project you've routed through the orchestrator. Keep this in sync with `~/slack-state/routes.json`.
 
 ## Example: Project Name
 

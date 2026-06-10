@@ -12,10 +12,10 @@ Optional deeper check: the dispatcher session's `/mcp` panel would show `slack-c
 
 Check file presence and permissions:
 
-- `~/.claude/channels/slack/.env` exists? Expected chmod `0600`.
-- `~/.claude/channels/slack/access.json` parseable JSON?
-- `~/.claude/channels/slack/routes.json` parseable JSON?
-- `~/.claude/channels/slack/threads.json` parseable JSON (if present)?
+- `~/slack-state/.env` exists? Expected chmod `0600`.
+- `~/slack-state/access.json` parseable JSON?
+- `~/slack-state/routes.json` parseable JSON?
+- `~/slack-state/threads.json` parseable JSON (if present)?
 
 Report any anomalies (missing file, bad permissions, malformed JSON).
 
