@@ -845,7 +845,7 @@ slackApp.event('message', async ({ event }) => {
         })
       } catch {}
     }
-    const text = msg.text as string ?? ''
+    const text = renderSlackMessage(msg)
     const fileIds = (msg.files ?? []).map((f: any) => f.id)
     deliver(
       channelId,
