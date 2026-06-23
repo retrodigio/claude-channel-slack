@@ -81,6 +81,42 @@ describe('decideChannelPolicy — bots (default-deny)', () => {
   })
 })
 
+describe('decideChannelPolicy — bots opted in via allowBots (no human side effect)', () => {
+  const BOT_USER = 'U0B3RAP5A57' // the operator-visible "Bot User ID"
+
+  test('delivers bot matched by bot id in allowBots', () => {
+    expect(decideChannelPolicy(policy({ allowBots: [BOT] }), BOT, false, true)).toBe('deliver')
+  })
+
+  test('delivers bot matched by its user id in allowBots (the id operators can actually see)', () => {
+    expect(decideChannelPolicy(policy({ allowBots: [BOT_USER] }), BOT, false, true, BOT_USER)).toBe('deliver')
+  })
+
+  test('drops bot when neither its bot id nor user id is in allowBots', () => {
+    expect(decideChannelPolicy(policy({ allowBots: [OTHER_BOT] }), BOT, false, true, BOT_USER)).toBe('drop')
+  })
+
+  test('allowBots does NOT narrow the human allowlist — humans still default-allow', () => {
+    // The whole point of a separate field: opting a bot in must not flip the
+    // channel into human-allowlist mode the way a populated allowFrom does.
+    expect(decideChannelPolicy(policy({ allowBots: [BOT_USER] }), HUMAN, true, false)).toBe('deliver')
+    expect(decideChannelPolicy(policy({ allowBots: [BOT_USER] }), OTHER_USER, true, false)).toBe('deliver')
+  })
+
+  test('opted-in bot still respects requireMention', () => {
+    expect(decideChannelPolicy(policy({ requireMention: true, allowBots: [BOT_USER] }), BOT, false, true, BOT_USER)).toBe('drop')
+    expect(decideChannelPolicy(policy({ requireMention: true, allowBots: [BOT_USER] }), BOT, true, true, BOT_USER)).toBe('deliver')
+  })
+
+  test('legacy: bot id in allowFrom still admits the bot (backward compatible)', () => {
+    expect(decideChannelPolicy(policy({ allowFrom: [BOT] }), BOT, false, true)).toBe('deliver')
+  })
+
+  test('botUserId is ignored for humans (a human whose id happens to be passed is unaffected)', () => {
+    expect(decideChannelPolicy(policy({ allowBots: [BOT_USER] }), HUMAN, true, false, BOT_USER)).toBe('deliver')
+  })
+})
+
 describe('isBotDMBlocked', () => {
   test('blocks bot DMs', () => {
     expect(isBotDMBlocked('im', true)).toBe(true)

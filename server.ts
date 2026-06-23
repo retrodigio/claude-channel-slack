@@ -292,7 +292,7 @@ type GateResult =
   | { action: 'drop' }
   | { action: 'pair'; code: string; isResend: boolean }
 
-async function gate(senderId: string, channelId: string, channelType: string, isMention: boolean, isBot: boolean = false): Promise<GateResult> {
+async function gate(senderId: string, channelId: string, channelType: string, isMention: boolean, isBot: boolean = false, botUserId?: string): Promise<GateResult> {
   const access = loadAccess()
   const pruned = pruneExpired(access)
   if (pruned) saveAccess(access)
@@ -332,7 +332,7 @@ async function gate(senderId: string, channelId: string, channelType: string, is
   }
 
   // Channel message — delegated to pure decideChannelPolicy in gate.ts.
-  const decision = decideChannelPolicy(access.channels[channelId], senderId, isMention, isBot)
+  const decision = decideChannelPolicy(access.channels[channelId], senderId, isMention, isBot, botUserId)
   if (decision === 'drop') return { action: 'drop' }
   return { action: 'deliver', access }
 }
@@ -751,10 +751,13 @@ slackApp.event('app_mention', async ({ event }) => {
   const isBot = !!ev.bot_id
   const senderId: string | undefined = isBot ? ev.bot_id : ev.user
   if (!senderId) return
+  // A bot post carries both bot_id (senderId) and the bot's user id (ev.user);
+  // pass the latter so allowBots can match the operator-visible "Bot User ID".
+  const botSenderUserId = isBot ? (ev.user as string | undefined) : undefined
   const channelId = event.channel
   const threadTs = event.thread_ts || event.ts
 
-  const result = await gate(senderId, channelId, 'channel', true, isBot)
+  const result = await gate(senderId, channelId, 'channel', true, isBot, botSenderUserId)
   if (result.action === 'drop') return
   if (result.action === 'pair') return
 
@@ -792,14 +795,21 @@ slackApp.event('message', async ({ event }) => {
   // message_changed, file_share, thread_broadcast, etc.) — the existing
   // upstream behaviour for non-bot-message subtypes.
   const isBot = !!msg.bot_id
-  if (msg.subtype && msg.subtype !== 'bot_message') return
+  // Accept no-subtype (modern app posts + plain human messages), legacy
+  // 'bot_message', and 'file_share' (a human/app posting a file — the file
+  // ids ride on msg.files and the deliver path already forwards them). Every
+  // other subtype (channel_join, message_changed, thread_broadcast, …) is
+  // upstream noise and stays dropped.
+  if (msg.subtype && msg.subtype !== 'bot_message' && msg.subtype !== 'file_share') return
   if (msg.user === botUserId) return
 
   // For bots, identify by bot_id (B-prefix) since msg.user may be unset on
-  // classic incoming-webhook posts. Operators allowlist bot ids in a channel's
-  // allowFrom to opt them in.
+  // classic incoming-webhook posts. For modern granular apps msg.user IS the
+  // bot's user id — pass it as botSenderUserId so allowBots can match the
+  // operator-visible "Bot User ID".
   const senderId = isBot ? (msg.bot_id as string) : (msg.user as string)
   if (!senderId) return
+  const botSenderUserId = isBot ? (msg.user as string | undefined) : undefined
   const channelId = msg.channel as string
   const channelType = msg.channel_type as string
   const threadTs = msg.thread_ts
@@ -848,7 +858,7 @@ slackApp.event('message', async ({ event }) => {
     return
   }
 
-  const result = await gate(senderId, channelId, isDM ? 'im' : 'channel', isMention, isBot)
+  const result = await gate(senderId, channelId, isDM ? 'im' : 'channel', isMention, isBot, botSenderUserId)
 
   if (result.action === 'drop') return
 
