@@ -18,8 +18,9 @@ Possible causes:
 ## Subagent replied once, then went silent on a follow-up
 
 1. **Thread mapping lost.** If `threads.json` got edited or deleted, the follow-up won't resolve to the right subagent. Check the file.
-2. **Subagent transcript missing.** If `~/.claude/projects/*/subagents/` got cleared, the subagent can't resume. The dispatcher should fall back to spawning a fresh subagent — if it doesn't, restart the dispatcher.
-3. **Dispatcher crashed.** Check the terminal where the dispatcher is running. Long-running sessions can hit context limits or other issues. Restart.
+2. **Subagent orphaned by a dispatcher restart.** This is the most common cause. Subagents live at `~/.claude/projects/<project-hash>/<dispatcher-session-uuid>/subagents/agent-<id>.jsonl` and are keyed by `(session_uuid, agent_id)` — so a restarted dispatcher cannot reach the previous session's subagents even though the transcripts are intact on disk. `SendMessage` fails with `"no transcript to resume"` or `"agent not found"`. Recover rather than cold-starting: check the thread's `note:` field first, then the `agent-<id>.meta.json` sidecar, then tail the orphaned JSONL. See the plugin README's "Restart semantics and subagent orphaning."
+3. **Subagent transcript genuinely missing.** If the transcript is absent under *every* session UUID (`ls ~/.claude/projects/<project-hash>/*/subagents/agent-<id>.jsonl`), it was cleared. Spawn a fresh subagent and disclose the context loss in-thread.
+4. **Dispatcher crashed.** Check the terminal where the dispatcher is running. Long-running sessions can hit context limits or other issues. Restart — but note that restarting orphans every live subagent, per #2.
 
 ## "1 MCP server failed" in /mcp
 
@@ -37,7 +38,7 @@ Start Claude Code with `--debug` and tail the debug log. Filter for `slack-chann
 
 ## Bot posting in wrong threads
 
-Check the subagent's prompt (in its transcript file under `~/.claude/projects/*/subagents/`). It should have the correct `thread_ts` baked in. If it's posting outside its thread, the subagent is ignoring instructions — add a firmer reminder to the threads skill's prompt template.
+Check the subagent's prompt (in its transcript file under `~/.claude/projects/<project-hash>/<dispatcher-session-uuid>/subagents/`). It should have the correct `thread_ts` baked in. If it's posting outside its thread, the subagent is ignoring instructions — add a firmer reminder to the threads skill's prompt template.
 
 ## Too many stale threads in threads.json
 

@@ -7,7 +7,7 @@ Bridge your Slack workspace into a running Claude Code session. DMs and @mention
 ## Highlights
 
 - **Per-thread subagent dispatch** — every unique Slack `thread_ts` spawns a dedicated subagent with its own context window. Parallel conversations stay independent; Claude never mixes up which thread it's in.
-- **Persistence across restarts** — thread state is stored on disk (`~/.claude/channels/slack/threads.json` + Claude Code's built-in subagent storage). Close your terminal, come back tomorrow, reply in a thread — the subagent wakes up with full memory of the prior conversation.
+- **Persistence** — thread state is stored on disk (`~/.claude/channels/slack/threads.json` + Claude Code's built-in subagent storage). Within a dispatcher session, reply in a thread days later and the subagent wakes up with full memory of the prior conversation. Across a dispatcher *restart*, the thread mapping survives but subagents must be recovered — see [Restart semantics](#restart-semantics-and-subagent-orphaning).
 - **Full Claude Code capability inside Slack** — subagents inherit every tool, skill, MCP server, and CLAUDE.md context from the parent session. Unlike a restricted Agent SDK bot, you get Read/Write/Edit/Bash/WebSearch/WebFetch and everything else natively.
 - **Three-tier access control** — DM pairing with code exchange, explicit allowlists, per-channel opt-in policies. Nothing responds until you authorize it.
 - **Permission relay** — if Claude needs tool approval while you're away, you can approve/deny from Slack via Block Kit buttons or text (`yes <code>` / `no <code>`).
@@ -235,9 +235,28 @@ Every Slack `thread_ts` gets a dedicated subagent. State is tracked in `~/.claud
 
 **New thread:** dispatcher resolves routing (see next section), spawns a subagent via the `Agent` tool, saves the mapping.
 **Follow-up:** dispatcher looks up the `agent_id` and uses `SendMessage` to resume the subagent. Claude Code auto-resumes stopped subagents from their on-disk transcripts, so the subagent wakes up with full prior context.
-**Persistence:** the mapping file survives session restarts, and Claude Code stores subagent transcripts at `~/.claude/projects/*/subagents/*.jsonl` independently.
+**Persistence:** the mapping file survives session restarts, and Claude Code stores subagent transcripts independently at:
 
-**When the parent session is offline:** Slack events queue briefly at Slack and then drop. For 24/7 coverage, run `claude --dangerously-load-development-channels server:slack-channel` inside a persistent terminal (tmux, screen, or a dedicated machine). Conversation state is preserved across restarts, but inbound events require a live session.
+```
+~/.claude/projects/<project-hash>/<dispatcher-session-uuid>/subagents/agent-<id>.jsonl
+```
+
+### Restart semantics and subagent orphaning
+
+Note the `<dispatcher-session-uuid>` component of that path. **Subagents are keyed by `(session_uuid, agent_id)`, not by `agent_id` alone.** Every Claude Code session gets a fresh UUID, so when the dispatcher restarts — crash, manual exit, reboot — `SendMessage` cannot reach subagents spawned by the previous session. The transcripts are still on disk under the old UUID, but they are orphaned to the new dispatcher.
+
+Symptom: `SendMessage` returns `"no transcript to resume"` or `"agent not found"` even though the `threads.json` mapping is correct.
+
+Recovery is possible, in increasing order of cost:
+
+1. **A well-maintained `note:` field** on the `threads.json` entry — if you keep a one-line current-state per thread, most restarts need no recovery at all. This is the cheapest mitigation by a wide margin.
+2. **`agent-<id>.meta.json`**, a ~125-byte sidecar next to each transcript containing `{agentType, description, toolUseId}` — recovers what the subagent was for without opening the transcript.
+3. **`~/.claude/teams/session-<uuid-prefix>/config.json`** — a roster with `leadSessionId` and `members[]` (`name`, `cwd`, `agentType`). Session-scoped, so it orphans too, but it is a cheap second index.
+4. **Tail the JSONL** for the last few assistant turns and posted `reply` calls, then brief a fresh subagent with that context. Transcripts routinely reach hundreds of KB, so read the tail, not the whole file.
+
+The upstream fix would be indexing subagents by `agent_id` alone. Until then, treat dispatcher restarts as costly and keep `note:` current.
+
+**When the parent session is offline:** Slack events queue briefly at Slack and then drop. For 24/7 coverage, run `claude --dangerously-load-development-channels server:slack-channel` inside a persistent terminal (tmux, screen, or a dedicated machine). The thread mapping and each subagent's transcript survive a restart; reaching those subagents again requires the recovery path above.
 
 ---
 

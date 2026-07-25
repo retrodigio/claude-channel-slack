@@ -38,7 +38,9 @@ Thread-to-agent mappings live in `~/.claude/channels/slack/threads.json`:
 }
 ```
 
-The file survives Claude Code restarts. Subagent context is stored separately by Claude Code itself (in `~/.claude/projects/*/subagents/`), so resuming a subagent by ID restores its full conversation history.
+The file survives Claude Code restarts. Subagent context is stored separately by Claude Code itself, at `~/.claude/projects/<project-hash>/<dispatcher-session-uuid>/subagents/agent-<id>.jsonl`, so resuming a subagent by ID restores its full conversation history.
+
+Note the session-UUID component: subagents are keyed by `(session_uuid, agent_id)`. Resuming by ID works within a dispatcher session, but after a dispatcher restart the prior session's subagents are orphaned and `SendMessage` will fail with `"no transcript to resume"` or `"agent not found"`. See the plugin README's "Restart semantics and subagent orphaning" for the recovery ladder.
 
 ## Key value: thread_ts
 
