@@ -68,3 +68,50 @@ export function decideChannelPolicy(
 export function isBotDMBlocked(channelType: 'im' | 'channel', isBot: boolean): boolean {
   return isBot && channelType === 'im'
 }
+
+/**
+ * Delivery de-duplication.
+ *
+ * Slack fires BOTH `app_mention` and `message` for a channel message that
+ * @mentions the app. The two server handlers are independent, so every mention
+ * was delivered to the session TWICE (observed 2026-07-28: identical message ids
+ * 120–430ms apart; messages with no mention arrived once, so the discriminator
+ * is mention-vs-no-mention, not human-vs-bot).
+ *
+ * For conversation a duplicate costs a repeated turn. For a consumer that spawns
+ * work off an inbound message it is two tickets, two worktrees and two pull
+ * requests from one request — and nothing upstream carries "already seen", so the
+ * consumer cannot distinguish a redelivery from a genuine repeat of the same text.
+ *
+ * Deduping in the substrate rather than in each handler is deliberate: a guard
+ * every consumer must remember is one some consumer will forget.
+ */
+export class DeliveryDeduper {
+  // Insertion-ordered, so the first key is always the oldest.
+  private readonly seen = new Set<string>()
+
+  /**
+   * `max` only needs to span the milliseconds between the paired events, so the
+   * default is generous by orders of magnitude while staying bounded.
+   */
+  constructor(private readonly max = 500) {}
+
+  /**
+   * Records this delivery and reports whether it was ALREADY recorded.
+   *
+   * An unkeyable event (missing channel or ts) is never suppressed — failing open
+   * risks a duplicate turn, failing closed would silently drop a first delivery.
+   */
+  seenBefore(channel: string | undefined, ts: string | undefined): boolean {
+    if (!channel || !ts) return false
+    const key = `${channel}:${ts}`
+    if (this.seen.has(key)) return true
+    this.seen.add(key)
+    if (this.seen.size > this.max) this.seen.delete(this.seen.values().next().value as string)
+    return false
+  }
+
+  get size(): number {
+    return this.seen.size
+  }
+}

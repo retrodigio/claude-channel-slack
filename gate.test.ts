@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { decideChannelPolicy, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
+import { decideChannelPolicy, DeliveryDeduper, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
 
 const HUMAN = 'U012ABCDE'
 const BOT = 'B0123ABCD'
@@ -132,5 +132,52 @@ describe('isBotDMBlocked', () => {
 
   test('does not block human channel posts', () => {
     expect(isBotDMBlocked('channel', false)).toBe(false)
+  })
+})
+
+describe('DeliveryDeduper', () => {
+  // Slack fires both app_mention and message for a mentioning channel message,
+  // and the two server handlers are independent — this is what stops the session
+  // seeing one message twice.
+  test('the paired events for one message deliver exactly once', () => {
+    const d = new DeliveryDeduper()
+    expect(d.seenBefore('C123', '1785258082.837079')).toBe(false) // app_mention arrives
+    expect(d.seenBefore('C123', '1785258082.837079')).toBe(true)  // message arrives 0.2s later
+  })
+
+  test('distinct messages are unaffected, including same ts in different channels', () => {
+    const d = new DeliveryDeduper()
+    expect(d.seenBefore('C123', '111.1')).toBe(false)
+    expect(d.seenBefore('C123', '222.2')).toBe(false)
+    expect(d.seenBefore('C999', '111.1')).toBe(false) // keyed on channel + ts, not ts alone
+  })
+
+  test('an unkeyable event is never suppressed — a duplicate turn beats a dropped one', () => {
+    const d = new DeliveryDeduper()
+    expect(d.seenBefore(undefined, '111.1')).toBe(false)
+    expect(d.seenBefore(undefined, '111.1')).toBe(false)
+    expect(d.seenBefore('C123', undefined)).toBe(false)
+    expect(d.seenBefore('C123', undefined)).toBe(false)
+    expect(d.size).toBe(0) // and nothing unkeyable is retained
+  })
+
+  test('bounded: oldest keys are evicted first and the cap holds', () => {
+    const d = new DeliveryDeduper(3)
+    for (const ts of ['1.0', '2.0', '3.0']) d.seenBefore('C1', ts)
+    expect(d.size).toBe(3)
+    d.seenBefore('C1', '4.0')          // evicts 1.0, the oldest
+    expect(d.size).toBe(3)
+    expect(d.seenBefore('C1', '4.0')).toBe(true)  // still remembered
+    expect(d.seenBefore('C1', '3.0')).toBe(true)  // still remembered
+    expect(d.seenBefore('C1', '1.0')).toBe(false) // evicted — fails open, as designed
+  })
+
+  test('eviction cannot be triggered by re-seeing an existing key', () => {
+    const d = new DeliveryDeduper(2)
+    d.seenBefore('C1', '1.0')
+    d.seenBefore('C1', '2.0')
+    for (let i = 0; i < 5; i++) d.seenBefore('C1', '2.0') // repeats must not churn the window
+    expect(d.size).toBe(2)
+    expect(d.seenBefore('C1', '1.0')).toBe(true)
   })
 })

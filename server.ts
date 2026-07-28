@@ -22,7 +22,7 @@ import {
 } from 'fs'
 import { homedir } from 'os'
 import { join, sep, extname, basename } from 'path'
-import { decideChannelPolicy, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
+import { decideChannelPolicy, DeliveryDeduper, isBotDMBlocked, type ChannelPolicy } from './gate.ts'
 import { renderSlackMessage } from './render.ts'
 
 const STATE_DIR = process.env.SLACK_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'slack')
@@ -740,6 +740,12 @@ function deliver(
   })
 }
 
+// Keyed on channel + ts (unique per Slack message). Contract and rationale live
+// on DeliveryDeduper in gate.ts, alongside the other intake decisions. A restart
+// starts empty, which is safe: it can only ever restore the old behaviour for
+// events already in flight, never drop a first delivery.
+const deduper = new DeliveryDeduper()
+
 // Handle @mentions in channels
 slackApp.event('app_mention', async ({ event }) => {
   // Symmetric with the message handler: bot posts that @mention this app
@@ -748,6 +754,10 @@ slackApp.event('app_mention', async ({ event }) => {
   // but keeping the rule consistent avoids a hidden second policy.
   const ev = event as any
   logInbound('app_mention', ev)
+  // Logged first so the raw payload of a suppressed duplicate is still captured
+  // — the diagnostic value of seeing both copies is why the log stays upstream
+  // of the guard.
+  if (deduper.seenBefore(ev.channel, ev.ts)) return
   const isBot = !!ev.bot_id
   const senderId: string | undefined = isBot ? ev.bot_id : ev.user
   if (!senderId) return
@@ -761,7 +771,14 @@ slackApp.event('app_mention', async ({ event }) => {
   if (result.action === 'drop') return
   if (result.action === 'pair') return
 
-  const text = renderSlackMessage(event).replace(/<@[A-Z0-9]+>/g, '').trim()
+  // Strip only THIS app's own mention — "@ClaudeCode do X" reads as "do X".
+  // Previously every `<@U…>` token was stripped, which silently deleted third-party
+  // mentions: "tell <@Ufoo> to file it" arrived as "tell to file it". That also made
+  // the two delivery paths render the same message differently (the `message`
+  // handler preserves all mentions), so with de-duplication in place the surviving
+  // copy would otherwise carry a different text depending on which event won a race.
+  const rendered = renderSlackMessage(event)
+  const text = (botUserId ? rendered.replaceAll(`<@${botUserId}>`, '') : rendered).replace(/\s{2,}/g, ' ').trim()
 
   const access = result.access
   const ackReaction = access.ackReaction ?? 'eyes'
@@ -786,6 +803,7 @@ slackApp.event('message', async ({ event }) => {
   // Logged before any subtype/self filtering so the raw payload of every
   // inbound message — including ones we later drop — is captured.
   logInbound('message', msg)
+  if (deduper.seenBefore(msg.channel, msg.ts)) return
   // Slack distinguishes bot posts in two ways depending on app age:
   //   1. Modern apps (granular permissions) post with NO subtype, but
   //      bot_id and bot_profile are populated.
